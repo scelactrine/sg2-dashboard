@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Amatan Antisipasi Banjir SG2</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      display: flex; flex-direction: column;
+    }
+    h1, h2 { margin: 8px; font-size: 14px; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; }
+    .table-container { flex: 1; margin: 6px; display: flex; }
+
+    table { border-collapse: collapse; width: 100%; height: 100%; font-size: 10px; table-layout: fixed; }
+    th, td {
+      border: 1px solid #ccc; padding: 4px; text-align: left;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .normal { background-color: #d4edda; }
+    .warning { background-color: #fff3cd; }
+    .danger { background-color: #f8d7da; }
+    .late { color: blue; font-weight: bold; }
+    .siaga { color: red; font-weight: bold; }
+    .risk { background-color: #ffe0e0; }
+
+    /* Weather font colors */
+    .weather-cerah { color: green; font-weight: bold; }
+    .weather-cerah-berawan { color: teal; }
+    .weather-berawan { color: gray; }
+    .weather-berawan-tebal { color: darkgray; font-style: italic; }
+    .weather-hujan-ringan { color: blue; }
+    .weather-hujan-sedang { color: dodgerblue; font-weight: bold; }
+    .weather-hujan-lebat { color: red; font-weight: bold; }
+    .weather-hujan-petir { color: darkred; font-weight: bold; }
+    .weather-kabut { color: purple; }
+    .weather-kabut-asap { color: brown; }
+    .weather-udara-kabur { color: orange; }
+
+    /* Cluster header styles */
+    .cluster-header { font-weight: bold; }
+    .cluster-hulu { background-color: #cfe8ff; }
+    .cluster-tengah { background-color: #ffe8b3; }
+    .cluster-hilir { background-color: #d4edda; }
+  </style>
+</head>
+<body>
+  <h1>Amatan Antisipasi Banjir SG2 (run "node server.js" first)</h1>
+
+  <div class="main-content">
+    <h2>Titik Amatan Hujan BMKG</h2>
+    <div class="table-container">
+      <table id="bmkg">
+        <tr>
+          <th>Pos</th><th>Suhu</th><th>Cuaca</th><th>Lokasi</th>
+          <th>Kelembaban</th><th>Kecepatan Angin</th><th>Arah Angin</th><th>Jarak Pandang</th><th>Pembaruan</th>
+        </tr>
+      </table>
+    </div>
+
+    <h2>Telemetri TMA BBWS Cisadane</h2>
+    <div class="table-container">
+      <table id="telemetry">
+        <tr><th>Pos</th><th>Lokasi</th><th>Pembaruan</th><th>TMA</th><th>Kondisi</th></tr>
+      </table>
+    </div>
+  </div>
+  <script>
+    // Weather classification
+    function classifyWeather(weather) {
+      const w = String(weather || "").toLowerCase();
+      if (w.includes("cerah berawan")) return { cls: "weather-cerah-berawan", risk: false };
+      if (w.includes("cerah")) return { cls: "weather-cerah", risk: false };
+      if (w.includes("berawan tebal")) return { cls: "weather-berawan-tebal", risk: false };
+      if (w.includes("berawan")) return { cls: "weather-berawan", risk: false };
+      if (w.includes("hujan ringan")) return { cls: "weather-hujan-ringan", risk: true };
+      if (w.includes("hujan sedang")) return { cls: "weather-hujan-sedang", risk: true };
+      if (w.includes("hujan lebat")) return { cls: "weather-hujan-lebat", risk: true };
+      if (w.includes("hujan petir")) return { cls: "weather-hujan-petir", risk: true };
+      if (w.includes("kabut asap")) return { cls: "weather-kabut-asap", risk: false };
+      if (w.includes("kabut")) return { cls: "weather-kabut", risk: false };
+      if (w.includes("udara kabur")) return { cls: "weather-udara-kabur", risk: false };
+      return { cls: "", risk: false };
+    }
+    // BMKG table with explicit cluster grouping and synchronous rendering
+    function renderBmkgWithRiverOrder(stations) {
+      const table = document.getElementById("bmkg");
+      table.innerHTML =
+        "<tr><th>Pos</th><th>Suhu</th><th>Cuaca</th><th>Lokasi</th><th>Kelembaban</th><th>Kecepatan Angin</th><th>Arah Angin</th><th>Jarak Pandang</th><th>Pembaruan</th></tr>";
+
+      const groups = {
+        HULU: [
+          "Bojong Murni (Ciawi, Bogor)",
+          "CH Rancamaya",
+          "Pasirjaya (Cigombong, Bogor)",
+          "CH Genteng (Bogor)",
+          "CH Dramaga (Bogor)",
+          "CH Kebun Raya Bogor (Paledang)",
+          "CH Taman Sari (Bogor)",
+          "CH Ciomas (Bogor)",
+          "Karacak (Leuwiliang, Bogor)",
+          "Bantar Karet (Nanggung, Bogor)"
+        ],
+        TENGAH: [
+          "CH Rumpin (Bogor)",
+          "CH Parung (Bogor)",
+          "Bantarjaya (Ranca Bungur, Bogor)",
+          "Mekarsari (Ranca Bungur, Bogor)",
+          "Ranca Bungur (Bogor)",
+          "Bantarsari (Ranca Bungur, Bogor)",
+          "Cigudeg (Bogor)",
+          "Bunar (Cigudeg, Bogor)",
+          "Sukaraksa (Cigudeg, Bogor)",
+          "Tegalega (Cigudeg, Bogor)",
+          "Rengasjajar (Cigudeg, Bogor)"
+        ],
+        HILIR: [
+          "CH Serpong",
+          "Neglasari (Kota Tangerang)"
+        ]
+      };
+
+      // Fetch all station data first
+      Promise.all(stations.map(st =>
+        fetch("http://localhost:3000/bmkg?code=" + encodeURIComponent(st.code))
+          .then(res => res.json())
+          .then(data => ({ ...st, data }))
+          .catch(() => null)
+      )).then(results => {
+        ["HULU", "TENGAH", "HILIR"].forEach(cluster => {
+          // Insert header row
+          const hr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 9;
+          td.textContent = cluster;
+          td.className = "cluster-header cluster-" + cluster.toLowerCase();
+          hr.appendChild(td);
+          table.appendChild(hr);
+
+          // Insert rows for this cluster
+          groups[cluster].forEach(name => {
+            const st = results.find(r => r && r.station === name);
+            if (st) {
+              const weatherInfo = classifyWeather(st.data.weather);
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${st.station}</td>
+                <td>${st.data.temp}</td>
+                <td class="${weatherInfo.cls}">${st.data.weather}</td>
+                <td>${st.data.location}</td>
+                <td>${st.data.humidity}</td>
+                <td>${st.data.windSpeed}</td>
+                <td>${st.data.windDirection}</td>
+                <td>${st.data.visibility}</td>
+                <td>${new Date().toLocaleString("id-ID")}</td>
+              `;
+              if (weatherInfo.risk) tr.classList.add("risk");
+              table.appendChild(tr);
+            }
+          });
+        });
+      });
+    }
+    // Load all data
+    function loadData() {
+      document.getElementById("bmkg").innerHTML =
+        "<tr><th>Station</th><th>Temperature</th><th>Weather</th><th>Location</th><th>Humidity</th><th>Wind Speed</th><th>Wind Direction</th><th>Visibility</th><th>Last Update</th></tr>";
+      document.getElementById("telemetry").innerHTML =
+        "<tr><th>Station</th><th>Location</th><th>Update</th><th>TMA</th><th>Status</th></tr>";
+
+      // BMKG rainfall stations
+      fetch("http://localhost:3000/bmkg/stations")
+        .then(res => res.json())
+        .then(stations => {
+          renderBmkgWithRiverOrder(stations);
+        });
+
+      // Telemetry table
+      fetch("http://localhost:3000/telemetry")
+        .then(res => res.json())
+        .then(data => {
+          const table = document.getElementById("telemetry");
+          table.innerHTML =
+            "<tr><th>Pos</th><th>Lokasi</th><th>Pembaruan</th><th>TMA</th><th>Kondisi</th></tr>";
+          const stations = [...data.stations].sort((a, b) => a.weight - b.weight || a.name.localeCompare(b.name));
+          stations.forEach(st => {
+            const tr = document.createElement("tr");
+            const tdName = document.createElement("td"); tdName.textContent = st.name; tr.appendChild(tdName);
+            const tdLoc = document.createElement("td"); tdLoc.textContent = st.location || ""; tr.appendChild(tdLoc);
+
+            const tdUpdate = document.createElement("td"); tdUpdate.textContent = st.update;
+            const today = new Date().toLocaleDateString("id-ID");
+            if (!String(st.update).includes(today)) tdUpdate.className = "late";
+            tr.appendChild(tdUpdate);
+
+            const tdTma = document.createElement("td"); tdTma.textContent = st.tma; tr.appendChild(tdTma);
+
+            const tdStatus = document.createElement("td"); tdStatus.textContent = st.status;
+            const statusLower = String(st.status).toLowerCase();
+            if (statusLower.includes("normal")) tr.className = "normal";
+            else if (statusLower.includes("siaga")) { tr.className = "warning"; tdStatus.className = "siaga"; }
+            else if (statusLower.includes("bahaya") || statusLower.includes("danger")) tr.className = "danger";
+            tr.appendChild(tdStatus);
+
+            table.appendChild(tr);
+          });
+        })
+        .catch(() => {
+          const table = document.getElementById("telemetry");
+          table.innerHTML =
+            "<tr><th>Station</th><th>Location</th><th>Update</th><th>TMA</th><th>Status</th></tr>";
+          const tr = document.createElement("tr");
+          const tdStation = document.createElement("td"); tdStation.textContent = "Telemetry"; tr.appendChild(tdStation);
+          const tdMsg = document.createElement("td"); tdMsg.colSpan = 4; tdMsg.textContent = "Error fetching telemetry data"; tr.appendChild(tdMsg);
+          table.appendChild(tr);
+        });
+    }
+
+    loadData();
+    setInterval(loadData, 300000); // refresh every 5 minutes
+  </script>
+</body>
+</html>
