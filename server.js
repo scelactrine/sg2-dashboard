@@ -1,16 +1,16 @@
+// --- Part 1: Imports, setup, CORS, BMKG stations list ---
 const express = require("express");
+const cors = require("cors");
 const cheerio = require("cheerio");
-const app = express();
-const PORT = 3000;
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  next();
-});
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Allow your GitHub Pages frontend to call the API
+app.use(cors({ origin: "https://scelactrine.github.io" }));
 
 // --- BMKG Cisadane + Rainfall stations list ---
 const bmkgStations = [
-  // Existing rainfall posts
   { station: "CH Serpong", code: "36.74.01.1009" },
   { station: "CH Rancamaya", code: "32.71.01.1010" },
   { station: "CH Rumpin (Bogor)", code: "32.01.18.2001" },
@@ -20,8 +20,6 @@ const bmkgStations = [
   { station: "CH Taman Sari (Bogor)", code: "32.01.31.2004" },
   { station: "CH Parung (Bogor)", code: "32.01.33.2002" },
   { station: "CH Ciomas (Bogor)", code: "32.01.29.2005" },
-
-  // New Cisadane BMKG codes
   { station: "Pasirjaya (Cigombong, Bogor)", code: "32.01.38.2007" },
   { station: "Bojong Murni (Ciawi, Bogor)", code: "32.01.24.2010" },
   { station: "Neglasari (Kota Tangerang)", code: "36.71.10.1001" },
@@ -38,16 +36,14 @@ const bmkgStations = [
   { station: "Bantar Karet (Nanggung, Bogor)", code: "32.01.21.2004" }
 ];
 
+// Endpoint to list BMKG stations
 app.get("/bmkg/stations", (req, res) => {
   res.json(bmkgStations);
 });
-
-// --- BMKG current conditions endpoint ---
+// --- Part 2: BMKG current conditions endpoint ---
 app.get("/bmkg", async (req, res) => {
   const code = req.query.code;
-  if (!code) {
-    return res.status(400).send("Missing ?code= parameter");
-  }
+  if (!code) return res.status(400).send("Missing ?code= parameter");
 
   try {
     const url = `https://www.bmkg.go.id/cuaca/prakiraan-cuaca/${code}`;
@@ -73,7 +69,7 @@ app.get("/bmkg", async (req, res) => {
     res.status(500).send("Error fetching BMKG data");
   }
 });
-// --- Telemetry endpoint – Cisadane PDAs ---
+// --- Part 3: Telemetry endpoint – Cisadane PDAs ---
 app.get("/telemetry", async (req, res) => {
   try {
     const url = "https://sdatelemetry.com/newfms/datapda.php";
@@ -141,7 +137,13 @@ app.get("/telemetry", async (req, res) => {
     res.status(500).send("Error fetching telemetry data");
   }
 });
+// --- Part 4: Root route + app.listen ---
+// Root route for Render health check
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server ready at http://localhost:${PORT}`);
 });
