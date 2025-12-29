@@ -1,8 +1,8 @@
 // --- Part 1: Imports, setup, CORS, BMKG stations list ---
-const express = require("express");
-const cors = require("cors");
-const cheerio = require("cheerio");
-const fetch = require("node-fetch"); // ensure node-fetch is installed
+import express from "express";
+import cors from "cors";
+import cheerio from "cheerio";
+import fetch from "node-fetch"; // now works with ESM
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,7 +74,12 @@ const bmkgStations = [
   { station: "setu-2001", code: "36.03.20.2001", cluster: "HILIR", andil: "Kecil" },
   { station: "muncul-2001", code: "36.03.21.2001", cluster: "HILIR", andil: "Kecil" }
 ];
-// Endpoint to list BMKG stations
+// --- Endpoint to list BMKG stations ---
+app.get("/bmkg/stations", (req, res) => {
+  res.json(bmkgStations);
+});
+
+// --- BMKG current conditions endpoint ---
 app.get("/bmkg", async (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).json({ error: "Missing ?code= parameter" });
@@ -94,7 +99,7 @@ app.get("/bmkg", async (req, res) => {
 
     // Extract current condition text
     const currentText = $("body").text();
-    const match = currentText.match(/Saat ini\\s+([0-9]+) °C\\s+([A-Za-z ]+)/);
+    const match = currentText.match(/Saat ini\s+([0-9]+) °C\s+([A-Za-z ]+)/);
 
     const forecast = {
       temperature: match ? match[1] + " °C" : "Unavailable",
@@ -108,9 +113,6 @@ app.get("/bmkg", async (req, res) => {
     res.status(500).json({ error: "Error fetching BMKG data" });
   }
 });
-
-
-
 
 // --- Root route + app.listen ---
 app.get("/", (req, res) => {
