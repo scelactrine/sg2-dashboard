@@ -6,8 +6,6 @@ const cheerio = require("cheerio");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-import cors from "cors";
-
 // Allow both the user page and the repo page
 app.use(cors({
   origin: [
@@ -15,6 +13,7 @@ app.use(cors({
     "https://scelactrine.github.io/sg2-dashboard"
   ]
 }));
+
 
 
 
