@@ -82,18 +82,29 @@ app.get("/bmkg/stations", (req, res) => {
 // --- BMKG current conditions endpoint ---
 app.get("/bmkg", async (req, res) => {
   const code = req.query.code;
-  if (!code) return res.status(400).send("Missing ?code= parameter");
+  if (!code) return res.status(400).json({ error: "Missing ?code= parameter" });
 
   try {
     const url = `https://www.bmkg.go.id/cuaca/prakiraan-cuaca/${code}`;
-    const response = await fetch(url);
-    const html = await response.text();
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; sg2-dashboard/1.0)"
+      }
+    });
 
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "BMKG returned error" });
+    }
+
+    const html = await response.text();
     const $ = cheerio.load(html);
+
+    // Adjust selector if needed
     const currentBlock = $(".mt-6.md\\:mt-0");
+    const weatherText = currentBlock.find("p.text-black-primary").first().text().trim();
 
     const forecast = {
-      weather: currentBlock.find("p.text-black-primary").first().text().trim(),
+      weather: weatherText || "Unavailable",
       update: new Date().toLocaleString("id-ID")
     };
 
@@ -103,6 +114,7 @@ app.get("/bmkg", async (req, res) => {
     res.status(500).json({ error: "Error fetching BMKG data" });
   }
 });
+
 
 
 // --- Root route + app.listen ---
