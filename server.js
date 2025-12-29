@@ -100,9 +100,10 @@ app.get("/bmkg", async (req, res) => {
     res.json(forecast);
   } catch (err) {
     console.error("BMKG fetch error:", err);
-    res.status(500).send("Error fetching BMKG data");
+    res.status(500).json({ error: "Error fetching BMKG data" });
   }
 });
+
 
 // --- Root route + app.listen ---
 app.get("/", (req, res) => {
