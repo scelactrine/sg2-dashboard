@@ -75,11 +75,6 @@ const bmkgStations = [
   { station: "muncul-2001", code: "36.03.21.2001", cluster: "HILIR", andil: "Kecil" }
 ];
 // Endpoint to list BMKG stations
-app.get("/bmkg/stations", (req, res) => {
-  res.json(bmkgStations);
-});
-
-// --- BMKG current conditions endpoint ---
 app.get("/bmkg", async (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).json({ error: "Missing ?code= parameter" });
@@ -87,9 +82,7 @@ app.get("/bmkg", async (req, res) => {
   try {
     const url = `https://www.bmkg.go.id/cuaca/prakiraan-cuaca/${code}`;
     const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; sg2-dashboard/1.0)"
-      }
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; sg2-dashboard/1.0)" }
     });
 
     if (!response.ok) {
@@ -99,12 +92,13 @@ app.get("/bmkg", async (req, res) => {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Adjust selector if needed
-    const currentBlock = $(".mt-6.md\\:mt-0");
-    const weatherText = currentBlock.find("p.text-black-primary").first().text().trim();
+    // Extract current condition text
+    const currentText = $("body").text();
+    const match = currentText.match(/Saat ini\\s+([0-9]+) °C\\s+([A-Za-z ]+)/);
 
     const forecast = {
-      weather: weatherText || "Unavailable",
+      temperature: match ? match[1] + " °C" : "Unavailable",
+      weather: match ? match[2].trim() : "Unavailable",
       update: new Date().toLocaleString("id-ID")
     };
 
@@ -114,6 +108,7 @@ app.get("/bmkg", async (req, res) => {
     res.status(500).json({ error: "Error fetching BMKG data" });
   }
 });
+
 
 
 
