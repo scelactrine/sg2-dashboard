@@ -1,8 +1,9 @@
 // --- Part 1: Imports, setup, CORS, BMKG stations list ---
 import express from "express";
 import cors from "cors";
-import cheerio from "cheerio";
-import fetch from "node-fetch"; // now works with ESM
+import * as cheerio from "cheerio";
+import fetch from "node-fetch";
+// now works with ESM
 
 const app = express();
 const PORT = process.env.PORT || 3000;
