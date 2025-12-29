@@ -95,24 +95,43 @@ app.get("/bmkg", async (req, res) => {
       return res.status(response.status).json({ error: "BMKG returned error" });
     }
 
-    
     const html = await response.text();
-const $ = cheerio.load(html);
+    const $ = cheerio.load(html);
 
-// BMKG forecast table rows
-const rows = $("table.table-prakiraan-cuaca tbody tr");
+    // Update time
+    const update = $("time span").first().text().trim();
 
-// Extract the first row (current conditions)
-const firstRow = rows.first();
-const temperature = firstRow.find("td:nth-child(2)").text().trim();
-const weather = firstRow.find("td:nth-child(3)").text().trim();
+    // Weather condition
+    const weather = $("p.text-black-primary").first().text().trim();
 
-const forecast = {
-  temperature: temperature || "Unavailable",
-  weather: weather || "Unavailable",
-  update: new Date().toLocaleString("id-ID")
-};
+    // Temperature
+    const temperature = $("p.font-bold").first().text().trim();
 
+    // Location
+    const location = $("p.text-gray-primary").first().text().replace("di ", "").trim();
+
+    // Humidity
+    const humidity = $("p:contains('Kelembapan') span").text().trim();
+
+    // Wind speed
+    const windSpeed = $("p:contains('Kecepatan Angin') span").text().trim();
+
+    // Wind direction
+    const windDirection = $("p:contains('Arah Angin dari') span.text-black-primary").text().trim();
+
+    // Visibility
+    const visibility = $("p:contains('Jarak Pandang') span").text().trim();
+
+    const forecast = {
+      update: update || "Unavailable",
+      weather: weather || "Unavailable",
+      temperature: temperature || "Unavailable",
+      location: location || "Unavailable",
+      humidity: humidity || "Unavailable",
+      windSpeed: windSpeed || "Unavailable",
+      windDirection: windDirection || "Unavailable",
+      visibility: visibility || "Unavailable"
+    };
 
     res.json(forecast);
   } catch (err) {
@@ -120,6 +139,7 @@ const forecast = {
     res.status(500).json({ error: "Error fetching BMKG data" });
   }
 });
+
 
 // --- Root route + app.listen ---
 app.get("/", (req, res) => {
