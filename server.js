@@ -95,18 +95,24 @@ app.get("/bmkg", async (req, res) => {
       return res.status(response.status).json({ error: "BMKG returned error" });
     }
 
+    
     const html = await response.text();
-    const $ = cheerio.load(html);
+const $ = cheerio.load(html);
 
-    // Extract current condition text
-    const currentText = $("body").text();
-    const match = currentText.match(/Saat ini\s+([0-9]+) °C\s+([A-Za-z ]+)/);
+// BMKG forecast table rows
+const rows = $("table.table-prakiraan-cuaca tbody tr");
 
-    const forecast = {
-      temperature: match ? match[1] + " °C" : "Unavailable",
-      weather: match ? match[2].trim() : "Unavailable",
-      update: new Date().toLocaleString("id-ID")
-    };
+// Extract the first row (current conditions)
+const firstRow = rows.first();
+const temperature = firstRow.find("td:nth-child(2)").text().trim();
+const weather = firstRow.find("td:nth-child(3)").text().trim();
+
+const forecast = {
+  temperature: temperature || "Unavailable",
+  weather: weather || "Unavailable",
+  update: new Date().toLocaleString("id-ID")
+};
+
 
     res.json(forecast);
   } catch (err) {
