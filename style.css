@@ -1,0 +1,56 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+}
+
+h1 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  background: #fff;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: left;
+}
+
+th {
+  background-color: #e0f0ff;
+}
+
+/* Cluster header styles */
+.cluster-header {
+  font-weight: bold;
+  text-align: center;
+  color: #000;
+}
+
+.cluster-hulu {
+  background-color: #c8f7c5; /* light green */
+}
+
+.cluster-tengah {
+  background-color: #ffe0b2; /* light orange */
+}
+
+.cluster-hilir {
+  background-color: #bbdefb; /* light blue */
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+/* Highlight rows with impactful weather */
+.row-alert {
+  background-color: #ffcccc !important; /* light red */
+}
