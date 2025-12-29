@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const cheerio = require("cheerio");
+const fetch = require("node-fetch"); // ensure node-fetch is installed
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,9 +14,6 @@ app.use(cors({
     "https://scelactrine.github.io/sg2-dashboard"
   ]
 }));
-
-
-
 
 // --- BMKG Cisadane + Rainfall stations list ---
 // Add cluster + andil fields so frontend can group and show relevancy
