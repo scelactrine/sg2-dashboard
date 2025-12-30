@@ -99,28 +99,29 @@ app.get("/bmkg", async (req, res) => {
     const $ = cheerio.load(html);
 
     // Update time
-    const update = $("time span").first().text().trim();
+const update = $("time span").first().text().trim();
 
-    // Weather condition
-    const weather = $("p.text-black-primary").first().text().trim();
+// Weather condition (scoped to forecast block)
+const weather = $("div.md\\:flex p.text-black-primary").first().text().trim();
 
-    // Temperature
-    const temperature = $("p.font-bold").first().text().trim();
+// Temperature
+const temperature = $("p.font-bold").first().text().trim();
 
-    // Location
-    const location = $("p.text-gray-primary").first().text().replace("di ", "").trim();
+// Location
+const location = $("div.md\\:flex p.text-gray-primary").first().text().replace("di ", "").trim();
 
-    // Humidity
-    const humidity = $("p:contains('Kelembapan') span").text().trim();
+// Humidity
+const humidity = $("p:contains('Kelembapan') span").text().trim();
 
-    // Wind speed
-    const windSpeed = $("p:contains('Kecepatan Angin') span").text().trim();
+// Wind speed
+const windSpeed = $("p:contains('Kecepatan Angin') span").text().trim();
 
-    // Wind direction
-    const windDirection = $("p:contains('Arah Angin dari') span.text-black-primary").text().trim();
+// Wind direction
+const windDirection = $("p:contains('Arah Angin dari') span.text-black-primary").text().trim();
 
-    // Visibility
-    const visibility = $("p:contains('Jarak Pandang') span").text().trim();
+// Visibility
+const visibility = $("p:contains('Jarak Pandang') span").text().trim();
+
 
     const forecast = {
       update: update || "Unavailable",
